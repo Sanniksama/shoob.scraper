@@ -1,0 +1,47 @@
+name: Shoob Scraper
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Start page"
+        required: true
+        default: "1"
+      end:
+        description: "End page"
+        required: true
+        default: "300"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+
+      - name: Run scraper
+        run: |
+          python main.py \
+            --start ${{ github.event.inputs.start }} \
+            --end ${{ github.event.inputs.end }} \
+            --resume
+
+      - name: Commit output
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add output/
+          git commit -m "Scraped pages ${{ github.event.inputs.start }}-${{ github.event.inputs.end }}" || echo "No changes"
+          git push
